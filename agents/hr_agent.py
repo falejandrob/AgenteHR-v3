@@ -139,8 +139,16 @@ Si no tienes información suficiente, dilo claramente."""
         Generar respuesta con manejo robusto de errores para o3-mini
         """
         try:
-            # Intentar generar respuesta
-            result = self.llm.invoke(messages)
+            # Verificar el tipo de modelo para usar invoke apropiado
+            deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT', '').lower()
+            
+            if deployment in {"o3-mini", "o3", "o4-mini"}:
+                # Para o3-mini, usar invocación simple sin parámetros adicionales
+                logger.info("🔄 Invocando o3-mini con configuración mínima")
+                result = self.llm.invoke(messages)
+            else:
+                # Para otros modelos, usar configuración estándar
+                result = self.llm.invoke(messages)
             
             # Manejo robusto de diferentes tipos de respuesta
             if result is None:
@@ -176,7 +184,14 @@ Si no tienes información suficiente, dilo claramente."""
             return "Lo siento, hubo un problema técnico. Por favor intenta de nuevo."
             
         except Exception as e:
+            error_msg = str(e).lower()
             logger.error(f"❌ Error generando respuesta: {e}")
+            
+            # Manejo específico para errores de parámetros no soportados
+            if "unsupported parameter" in error_msg or "temperature" in error_msg:
+                logger.error("🚫 Error de parámetro no soportado detectado - reintentando con configuración mínima")
+                return "Lo siento, hubo un problema de configuración del modelo. El equipo técnico ha sido notificado."
+            
             return "Lo siento, encontré un problema técnico. Por favor intenta de nuevo en un momento."
     
     def start_new_conversation(self, session_id: str = "default"):

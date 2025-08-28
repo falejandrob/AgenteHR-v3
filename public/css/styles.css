@@ -178,6 +178,19 @@ body {
   background-clip: text;
 }
 
+.logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 15px rgba(228, 0, 43, 0.5));
+  transition: all 0.3s ease;
+}
+
+.logo-img:hover {
+  filter: drop-shadow(0 0 20px rgba(228, 0, 43, 0.7));
+  transform: scale(1.05);
+}
+
 .tagline {
   color: var(--havas-white);
   font-size: var(--font-size-sm);
@@ -316,6 +329,7 @@ body {
 .welcome-message {
   text-align: center;
   padding: var(--space-2xl) var(--space-xl);
+  margin-top: var(--space-2xl);
   animation: fadeIn 1s ease-out;
 }
 
@@ -971,6 +985,10 @@ body {
     font-size: var(--font-size-2xl);
   }
 
+  .logo-img {
+    height: 32px;
+  }
+
   .tagline {
     display: none;
   }
@@ -1178,6 +1196,11 @@ body {
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .logo {
     text-rendering: optimizeLegibility;
+  }
+  
+  .logo-img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 }
 

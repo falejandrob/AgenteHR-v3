@@ -1,7 +1,3 @@
-"""
-HAVAS Chatbot - Aplicación Flask Simplificada
-Optimizada para o3-mini reasoning model
-"""
 import os
 import logging
 from datetime import datetime
@@ -11,21 +7,21 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 
-# Imports locales
+# Local imports
 from config.langchain_config import validate_config
-from agents.hr_agent import hr_agent_simple
+from agents.tv_agent import hr_agent_simple
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 
-# Configurar logging
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Configurar Flask
+# Configure Flask
 app = Flask(__name__, static_folder='public', static_url_path='')
 CORS(app)
 
@@ -38,7 +34,7 @@ limiter = Limiter(
 
 @app.route('/')
 def index():
-    """Servir página principal"""
+    """Serve main page"""
     return app.send_static_file('index.html')
 
 @app.route('/api/health')
@@ -46,63 +42,63 @@ def index():
 def health():
     """Health check endpoint"""
     try:
-        logger.info("✅ Health check: healthy")
+        logger.info("Health check: healthy")
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
-            'version': '2.0-simplified'
+            'version': '2.0-'
         })
     except Exception as e:
-        logger.error(f"❌ Health check failed: {e}")
+        logger.error(f"Health check failed: {e}")
         return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
 
 @app.route('/api/chat', methods=['POST'])
 @limiter.limit("30 per minute")
 def chat():
-    """Endpoint principal de chat"""
+    """Main chat endpoint"""
     try:
-        # Obtener datos de la petición
+        # Get request data
         data = request.get_json()
         
         if not data or 'message' not in data:
-            return jsonify({'error': 'Mensaje requerido'}), 400
+            return jsonify({'error': 'Message required'}), 400
             
         message = data.get('message', '').strip()
         session_id = data.get('sessionId', 'default')
         
         
         if not message:
-            return jsonify({'error': 'Mensaje no puede estar vacío'}), 400
+            return jsonify({'error': 'Message cannot be empty'}), 400
             
-        logger.info(f"📩 Nuevo mensaje recibido: {message[:50]}...")
-        logger.info(f"🆔 Session ID: {session_id}")
+        logger.info(f"New message received: {message[:50]}...")
+        logger.info(f"Session ID: {session_id}")
         
         
-        # Procesar mensaje con el agente simplificado y modelo especificado
+        # Process message with  agent and specified model
         result = hr_agent_simple.process_message(message, session_id)
         
-        # Verificar si hubo error
+        # Check for errors
         if 'error' in result:
-            logger.error(f"❌ Error procesando mensaje: {result.get('details', 'Unknown error')}")
+            logger.error(f"Error processing message: {result.get('details', 'Unknown error')}")
             return jsonify({
-                'error': 'Error interno del servidor',
+                'error': 'Internal server error',
                 'timestamp': datetime.now().isoformat()
             }), 500
         
-        logger.info("✅ Mensaje procesado exitosamente")
+        logger.info("Message processed successfully")
         return jsonify(result)
         
     except Exception as e:
-        logger.error(f"❌ Error en endpoint de chat: {e}")
+        logger.error(f"Error in chat endpoint: {e}")
         return jsonify({
-            'error': 'Error interno del servidor',
+            'error': 'Internal server error',
             'timestamp': datetime.now().isoformat()
         }), 500
 
 @app.route('/api/new-conversation', methods=['POST'])
 @limiter.limit("10 per minute")
 def new_conversation():
-    """Iniciar nueva conversación"""
+    """Start new conversation"""
     try:
         data = request.get_json() or {}
         session_id = data.get('sessionId', 'default')
@@ -111,24 +107,24 @@ def new_conversation():
         
         return jsonify({
             'success': True,
-            'message': 'Nueva conversación iniciada',
+            'message': 'New conversation started',
             'sessionId': session_id,
             'timestamp': datetime.now().isoformat()
         })
         
     except Exception as e:
-        logger.error(f"❌ Error iniciando nueva conversación: {e}")
-        return jsonify({'error': 'Error interno del servidor'}), 500
+        logger.error(f"Error starting new conversation: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/debug/sessions')
 @limiter.exempt
 def debug_sessions():
-    """Debug endpoint para ver sesiones activas"""
+    """Debug endpoint to view active sessions"""
     try:
         sessions_info = {}
         
-        # Obtener info de todas las sesiones (simplificado)
-        for session_id in ['default']:  # Por ahora solo default
+        # Get info of all sessions ()
+        for session_id in ['default']:  # For now only default
             try:
                 info = hr_agent_simple.get_conversation_stats(session_id)
                 sessions_info[session_id] = info
@@ -141,55 +137,55 @@ def debug_sessions():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error en debug endpoint: {e}")
+        logger.error(f"Error in debug endpoint: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    """Manejar rate limit exceeded"""
+    """Handle rate limit exceeded"""
     return jsonify({
-        'error': 'Demasiadas peticiones. Por favor espera antes de intentar de nuevo.',
+        'error': 'Too many requests. Please wait before trying again.',
         'retry_after': str(e.retry_after) if hasattr(e, 'retry_after') else '60'
     }), 429
 
 @app.errorhandler(500)
 def internal_error_handler(e):
-    """Manejar errores internos"""
-    logger.error(f"❌ Error interno: {e}")
+    """Handle internal errors"""
+    logger.error(f"Internal error: {e}")
     return jsonify({
-        'error': 'Error interno del servidor',
+        'error': 'Internal server error',
         'timestamp': datetime.now().isoformat()
     }), 500
 
 def initialize_app():
-    """Inicializar aplicación"""
+    """Initialize application"""
     try:
-        # Validar configuración
+        # Validate configuration
         if not validate_config():
-            raise ValueError("Configuración de Azure OpenAI inválida")
+            raise ValueError("Invalid Azure OpenAI configuration")
         
-        logger.info("✅ Configuración validada exitosamente")
-        logger.info("✅ Agente HR Simplificado inicializado")
+        logger.info("Configuration validated successfully")
+        logger.info("HR  Agent initialized")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Error inicializando aplicación: {e}")
+        logger.error(f"Error initializing application: {e}")
         return False
 
 if __name__ == '__main__':
-    print("🚀 Iniciando HAVAS Chatbot Simplificado...")
+    print("Starting HAVAS Chatbot ...")
     
     if not initialize_app():
-        print("❌ Error en la inicialización. Revisa la configuración.")
+        print("Error during initialization. Check the configuration.")
         exit(1)
     
-    # Configuración del servidor
+    # Server configuration
     port = int(os.getenv('PORT', 3000))
     debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
     
-    logger.info(f"🚀 HAVAS Chatbot Simplificado ejecutándose en http://localhost:{port}")
-    logger.info(f"📊 Modo debug: {debug_mode}")
-    logger.info("🔧 Endpoints disponibles:")
+    logger.info(f"HAVAS Chatbot  running at http://localhost:{port}")
+    logger.info(f"Debug mode: {debug_mode}")
+    logger.info("Available endpoints:")
     logger.info(f"   - Chat: http://localhost:{port}/api/chat")
     logger.info(f"   - Health: http://localhost:{port}/api/health")
     logger.info(f"   - Debug: http://localhost:{port}/api/debug/sessions")

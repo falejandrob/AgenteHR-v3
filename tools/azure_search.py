@@ -45,16 +45,16 @@ class AzureSearchClient:
         if self.enabled:
             mode = "ONLY" if self.only_mode else "mixed"
             vec = "vector" if self.vector_mode else "text"
-            logger.info(f"🔗 Azure AI Search enabled (mode={mode}, retrieval={vec})")
+            logger.info(f"Azure AI Search enabled (mode={mode}, retrieval={vec})")
             if self.vector_mode:
                 try:
                     from config.langchain_config import get_azure_embeddings
                     self.embeddings = get_azure_embeddings()
                 except Exception as e:
-                    logger.error(f"❌ Could not initialize embeddings for vector search: {e}")
+                    logger.error(f"Could not initialize embeddings for vector search: {e}")
                     self.vector_mode = False
         else:
-            logger.info("ℹ️ Azure AI Search not fully configured; local vectorstore will be used")
+            logger.info("Azure AI Search not fully configured; local vectorstore will be used")
 
     def _choose_field(self, doc: Dict[str, Any], candidates: List[str]) -> str:
         for field in candidates:
@@ -67,10 +67,10 @@ class AzureSearchClient:
             if not self.embeddings:
                 return None
             vec = self.embeddings.embed_query(query)
-            # Asegurar tipo list de floats (serializable)
+            # Ensure list of floats (serializable)
             return list(map(float, vec))
         except Exception as e:
-            logger.error(f"❌ Error generating query embedding: {e}")
+            logger.error(f"Error generating query embedding: {e}")
             return None
 
     def search(self, query: str, k: int = None) -> List[Dict[str, Any]]:
@@ -87,7 +87,7 @@ class AzureSearchClient:
         if self.vector_mode:
             embedding = self._embed_query(query)
             if not embedding:
-                logger.warning("⚠️ Fallback to text search because embedding not available")
+                logger.warning("Fallback to text search because embedding not available")
                 self.vector_mode = False
             else:
                 payload = {
@@ -130,7 +130,7 @@ class AzureSearchClient:
         try:
             resp = requests.post(search_url, json=payload, headers=headers, timeout=30)
             if resp.status_code != 200:
-                logger.error(f"❌ Azure Search status {resp.status_code}: {resp.text[:200]}")
+                logger.error(f"Azure Search status {resp.status_code}: {resp.text[:200]}")
                 return []
             raw_results = resp.json().get("value", [])
             results: List[Dict[str, Any]] = []
@@ -148,10 +148,10 @@ class AzureSearchClient:
                     "type": doc_type,
                     "category": r.get("category", "")
                 })
-            logger.info(f"🔍 Azure Search returned {len(results)} documents")
+            logger.info(f"Azure Search returned {len(results)} documents")
             return results
         except Exception as e:
-            logger.error(f"❌ Error querying Azure Search: {e}")
+            logger.error(f"Error querying Azure Search: {e}")
             return []
 
     def get_context(self, results: List[Dict[str, Any]], max_length: int = 3000) -> str:
@@ -176,5 +176,5 @@ class AzureSearchClient:
         return "\n".join(parts)
 
 
-# Instancia global
+# Global instance
 azure_search = AzureSearchClient()

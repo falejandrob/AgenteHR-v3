@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Script de diagnóstico para Azure AI Search"""
+"""Azure AI Search diagnostic script"""
 
 import requests
 import os
@@ -7,15 +7,15 @@ import json
 import sys
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 
 def run_diagnostics():
-    print('🔍 HAVAS Chatbot - Diagnóstico de Azure AI Search')
+    print('HAVAS Chatbot - Azure AI Search Diagnostics')
     print('=' * 60)
     
-    # Verificar variables de entorno
-    print('\n1. ✅ Verificando variables de entorno...')
+    # Check environment variables
+    print('\n1. Checking environment variables...')
     required_vars = [
         'AZURE_OPENAI_ENDPOINT',
         'AZURE_OPENAI_KEY', 
@@ -30,17 +30,17 @@ def run_diagnostics():
     for var_name in required_vars:
         value = os.getenv(var_name)
         if value:
-            print(f'   ✅ {var_name}: {value[:20]}...')
+            print(f'   {var_name}: {value[:20]}...')
         else:
-            print(f'   ❌ {var_name}: NO CONFIGURADA')
+            print(f'   {var_name}: NOT CONFIGURED')
             missing_vars.append(var_name)
     
     if missing_vars:
-        print(f'\n❌ Faltan {len(missing_vars)} variables de entorno requeridas.')
+        print(f'\n{len(missing_vars)} required environment variables are missing.')
         sys.exit(1)
     
     # Test Azure Search Index
-    print('\n2. 🔍 Verificando índice de Azure AI Search...')
+    print('\n2. Checking Azure AI Search index...')
     try:
         index_url = f"{os.getenv('AZURE_SEARCH_ENDPOINT')}/indexes/{os.getenv('AZURE_SEARCH_INDEX')}?api-version=2023-11-01"
         headers = {
@@ -51,28 +51,28 @@ def run_diagnostics():
         
         if response.status_code == 200:
             data = response.json()
-            print(f'   ✅ Índice encontrado: {data["name"]}')
-            print(f'   📄 Total de campos: {len(data["fields"])}')
+            print(f'   Index found: {data["name"]}')
+            print(f'   Total fields: {len(data["fields"])}')
             
-            # Mostrar campos importantes
-            print('\n   📋 Campos del índice:')
+            # Show important fields
+            print('\n   Index fields:')
             for field in data['fields']:
-                searchable = '🔍' if field.get('searchable', False) else '  '
-                key = '🔑' if field.get('key', False) else '  '
-                print(f'   {key}{searchable} {field["name"]} ({field["type"]})')
+                searchable = 'searchable' if field.get('searchable', False) else 'not searchable'
+                key = 'key' if field.get('key', False) else 'not key'
+                print(f'   {key}, {searchable}: {field["name"]} ({field["type"]})')
         else:
-            print(f'   ❌ Error al acceder al índice:')
+            print(f'   Error accessing index:')
             print(f'      Status: {response.status_code}')
             print(f'      Message: {response.text}')
             return
         
     except Exception as error:
-        print('   ❌ Error al acceder al índice:')
+        print('   Error accessing index:')
         print(f'      Message: {str(error)}')
         return
     
-    # Test búsqueda simple
-    print('\n3. 🔍 Probando búsqueda simple...')
+    # Test simple search
+    print('\n3. Testing simple search...')
     try:
         search_url = f"{os.getenv('AZURE_SEARCH_ENDPOINT')}/indexes/{os.getenv('AZURE_SEARCH_INDEX')}/docs/search?api-version=2023-11-01"
         
@@ -91,32 +91,32 @@ def run_diagnostics():
         
         if search_response.status_code == 200:
             results = search_response.json().get('value', [])
-            print(f'   ✅ Búsqueda exitosa: {len(results)} documentos encontrados')
+            print(f'   Search successful: {len(results)} documents found')
             
             if results:
-                print('\n   📄 Muestra del primer documento:')
+                print('\n   Sample of the first document:')
                 doc = results[0]
                 for i, (key, value) in enumerate(doc.items()):
-                    if i >= 5:  # Solo mostrar los primeros 5 campos
+                    if i >= 5:  # Only show the first 5 fields
                         break
                     if isinstance(value, str) and len(value) > 50:
                         value = value[:50] + '...'
                     print(f'      {key}: {value}')
             else:
-                print('   ⚠️  No se encontraron documentos en el índice')
+                print('   No documents found in the index')
         else:
-            print('   ❌ Error en la búsqueda:')
+            print('   Error in search:')
             print(f'      Status: {search_response.status_code}')
             print(f'      Message: {search_response.text}')
         
     except Exception as error:
-        print('   ❌ Error en la búsqueda:')
+        print('   Error in search:')
         print(f'      Message: {str(error)}')
     
-    # Test búsqueda con query específico
-    print('\n4. 🔍 Probando búsqueda específica...')
+    # Test search with specific query
+    print('\n4. Testing specific search...')
     try:
-        test_queries = ['HAVAS', 'información', 'empresa', 'servicio']
+        test_queries = ['HAVAS', 'information', 'company', 'service']
         
         for query in test_queries:
             search_url = f"{os.getenv('AZURE_SEARCH_ENDPOINT')}/indexes/{os.getenv('AZURE_SEARCH_INDEX')}/docs/search?api-version=2023-11-01"
@@ -136,15 +136,15 @@ def run_diagnostics():
             
             if search_response.status_code == 200:
                 results = search_response.json().get('value', [])
-                print(f'   📝 Query "{query}": {len(results)} resultados')
+                print(f'   Query "{query}": {len(results)} results')
             else:
-                print(f'   ❌ Error en query "{query}": {search_response.text}')
+                print(f'   Error in query "{query}": {search_response.text}')
         
     except Exception as error:
-        print(f'   ❌ Error en búsqueda específica: {str(error)}')
+        print(f'   Error in specific search: {str(error)}')
     
     # Test Azure OpenAI
-    print('\n5. 🤖 Verificando Azure OpenAI...')
+    print('\n5. Checking Azure OpenAI...')
     try:
         deployment_url = f"{os.getenv('AZURE_OPENAI_ENDPOINT')}/openai/deployments?api-version=2023-05-15"
         headers = {
@@ -154,36 +154,36 @@ def run_diagnostics():
         openai_response = requests.get(deployment_url, headers=headers)
         
         if openai_response.status_code == 200:
-            print('   ✅ Conexión a OpenAI exitosa')
+            print('   OpenAI connection successful')
             
             deployments = openai_response.json().get('data', [])
             target_deployment = next((d for d in deployments if d.get('id') == os.getenv('AZURE_OPENAI_DEPLOYMENT')), None)
             
             if target_deployment:
-                print(f'   ✅ Deployment encontrado: {target_deployment["id"]}')
-                print(f'   📊 Modelo: {target_deployment.get("model", "N/A")}')
+                print(f'   Deployment found: {target_deployment["id"]}')
+                print(f'   Model: {target_deployment.get("model", "N/A")}')
             else:
-                print(f'   ⚠️  Deployment "{os.getenv("AZURE_OPENAI_DEPLOYMENT")}" no encontrado')
-                print('   📋 Deployments disponibles:')
+                print(f'   Deployment "{os.getenv("AZURE_OPENAI_DEPLOYMENT")}" not found')
+                print('   Available deployments:')
                 for d in deployments:
                     print(f'      - {d.get("id", "N/A")} ({d.get("model", "N/A")})')
         else:
-            print('   ❌ Error al conectar con OpenAI:')
+            print('   Error connecting to OpenAI:')
             print(f'      Status: {openai_response.status_code}')
             print(f'      Message: {openai_response.text}')
         
     except Exception as error:
-        print('   ❌ Error al conectar con OpenAI:')
+        print('   Error connecting to OpenAI:')
         print(f'      Message: {str(error)}')
     
-    # Test integración completa
-    print('\n6. 🎯 Test de integración completa...')
+    # Test complete integration
+    print('\n6. Testing complete integration...')
     try:
-        # Simular una consulta real
-        test_message = 'Hola, ¿qué servicios ofrece HAVAS?'
-        print(f'   📝 Query de prueba: "{test_message}"')
+        # Simulate a real query
+        test_message = 'Hello, what services does HAVAS offer?'
+        print(f'   Test query: "{test_message}"')
         
-        # Búsqueda
+        # Search
         search_url = f"{os.getenv('AZURE_SEARCH_ENDPOINT')}/indexes/{os.getenv('AZURE_SEARCH_INDEX')}/docs/search?api-version=2023-11-01"
         
         payload = {
@@ -201,9 +201,9 @@ def run_diagnostics():
         
         if search_response.status_code == 200:
             search_results = search_response.json().get('value', [])
-            print(f'   🔍 Documentos encontrados: {len(search_results)}')
+            print(f'   Documents found: {len(search_results)}')
             
-            # Generar contexto
+            # Generate context
             context = ''
             if search_results:
                 context_parts = []
@@ -216,7 +216,7 @@ def run_diagnostics():
                 
                 context = '\n\n'.join(context_parts)
             
-            # Test OpenAI con contexto
+            # Test OpenAI with context
             if context:
                 api_url = f"{os.getenv('AZURE_OPENAI_ENDPOINT')}/openai/deployments/{os.getenv('AZURE_OPENAI_DEPLOYMENT')}/chat/completions?api-version=2024-12-01-preview"
                 
@@ -224,7 +224,7 @@ def run_diagnostics():
                     "messages": [
                         { 
                             "role": "system", 
-                            "content": f"Eres un asistente de HAVAS. Contexto: {context[:500]}" 
+                            "content": f"You are an assistant of HAVAS. Context: {context[:500]}" 
                         },
                         { "role": "user", "content": test_message }
                     ],
@@ -241,31 +241,31 @@ def run_diagnostics():
                 
                 if openai_response.status_code == 200:
                     ai_response = openai_response.json()['choices'][0]['message']['content']
-                    print('   🤖 Respuesta de IA generada exitosamente')
-                    print(f'   💬 Preview: "{ai_response[:100]}..."')
-                    print('\n   ✅ ¡Integración completa funcionando correctamente!')
+                    print('   AI response generated successfully')
+                    print(f'   Preview: "{ai_response[:100]}..."')
+                    print('\n   Complete integration is working correctly!')
                 else:
-                    print(f'   ❌ Error en OpenAI: {openai_response.text}')
+                    print(f'   Error in OpenAI: {openai_response.text}')
             else:
-                print('   ⚠️  Sin contexto disponible, pero OpenAI funciona')
+                print('   No context available, but OpenAI is working')
         else:
-            print(f'   ❌ Error en búsqueda de integración: {search_response.text}')
+            print(f'   Error in integration search: {search_response.text}')
         
     except Exception as error:
-        print(f'   ❌ Error en test de integración: {str(error)}')
+        print(f'   Error in integration test: {str(error)}')
     
     print('\n' + '=' * 60)
-    print('🎉 Diagnóstico completado')
-    print('\n💡 Sugerencias:')
-    print('   - Si no hay documentos, revisa el proceso de indexación')
-    print('   - Verifica que los campos de búsqueda estén marcados como "searchable"')  
-    print('   - Considera usar búsqueda semántica para mejores resultados')
-    print('   - Revisa los logs del servidor para más detalles durante las consultas')
+    print('Diagnostics completed')
+    print('\nSuggestions:')
+    print('   - If there are no documents, check the indexing process')
+    print('   - Ensure that search fields are marked as "searchable"')  
+    print('   - Consider using semantic search for better results')
+    print('   - Check server logs for more details during queries')
 
 if __name__ == '__main__':
-    # Ejecutar diagnósticos
+    # Run diagnostics
     try:
         run_diagnostics()
     except Exception as error:
-        print(f'❌ Error durante el diagnóstico: {str(error)}')
+        print(f'Error during diagnostics: {str(error)}')
         sys.exit(1)

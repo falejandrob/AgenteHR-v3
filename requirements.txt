@@ -1,12 +1,26 @@
-flask==3.0.0
+# Flask web framework and extensions
+flask==3.0.3
 flask-cors==4.0.0
-requests==2.31.0
-python-dotenv==1.0.0
 flask-limiter==3.5.0
 
-# LangChain dependencies
-langchain==0.1.0
-langchain-openai==0.0.5
-langchain-community==0.0.10
-faiss-cpu==1.7.4
-tiktoken==0.5.2
+# Environment and configuration
+python-dotenv==1.0.1
+
+# HTTP requests
+requests==2.32.3
+
+# Azure OpenAI and LangChain integration
+langchain-core==0.3.15
+langchain-openai==0.2.8
+langchain-community==0.3.7
+langchain==0.3.7
+
+# Vector search and embeddings (for local FAISS if needed)
+faiss-cpu==1.8.0
+tiktoken==0.8.0
+
+# Text processing
+numpy==1.26.4
+
+# Optional: For advanced text splitting
+langchain-text-splitters==0.3.2

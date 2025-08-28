@@ -1,7 +1,3 @@
-"""
-Conversation memory system with LangChain
-Maintains intelligent conversation context
-"""
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
@@ -34,7 +30,7 @@ class ConversationMemoryManager:
                 return_messages=True,
                 memory_key="chat_history"
             )
-            logger.info(f"📝 New memory created for session: {session_id}")
+            logger.info(f"New memory created for session: {session_id}")
         
         # Update timestamp
         self.session_timestamps[session_id] = datetime.now()
@@ -49,7 +45,7 @@ class ConversationMemoryManager:
             {"input": human_message}, 
             {"output": ai_message}
         )
-        logger.debug(f"💭 Message added to session memory: {session_id}")
+        logger.debug(f"Message added to session memory: {session_id}")
     
     def get_conversation_history(self, session_id: str) -> str:
         """
@@ -61,12 +57,12 @@ class ConversationMemoryManager:
         memory = self.active_memories[session_id]
         history = memory.load_memory_variables({})
         
-        # Formatear mensajes para el prompt
+        # Format messages for the prompt
         if "chat_history" in history and history["chat_history"]:
             messages = []
             for message in history["chat_history"]:
                 if hasattr(message, 'content'):
-                    role = "Usuario" if message.__class__.__name__ == "HumanMessage" else "Asistente"
+                    role = "User" if message.__class__.__name__ == "HumanMessage" else "Assistant"
                     messages.append(f"{role}: {message.content}")
             return "\n".join(messages[-10:])  # Last 10 exchanges
         
@@ -80,7 +76,7 @@ class ConversationMemoryManager:
             del self.active_memories[session_id]
         if session_id in self.session_timestamps:
             del self.session_timestamps[session_id]
-        logger.info(f"🧹 Memory cleared for session: {session_id}")
+        logger.info(f"Memory cleared for session: {session_id}")
     
     def _cleanup_expired_sessions(self):
         """
@@ -95,9 +91,9 @@ class ConversationMemoryManager:
         
         for session_id in expired_sessions:
             self.clear_session(session_id)
-            logger.info(f"🕐 Sesión expirada limpiada: {session_id}")
+            logger.info(f"Expired session cleaned: {session_id}")
         
-        # Limpiar sesiones excedentes (mantener solo las más recientes)
+        # Clean excess sessions (keep only the most recent)
         if len(self.active_memories) > self.max_sessions:
             sorted_sessions = sorted(
                 self.session_timestamps.items(),
@@ -107,7 +103,7 @@ class ConversationMemoryManager:
             
             for session_id, _ in sorted_sessions[:sessions_to_remove]:
                 self.clear_session(session_id)
-                logger.info(f"📊 Session removed due to limit: {session_id}")
+                logger.info(f"Session removed due to limit: {session_id}")
     
     def get_session_info(self, session_id: str) -> Dict:
         """

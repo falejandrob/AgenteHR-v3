@@ -1,6 +1,5 @@
 """
-LangChain configuration simplificado para Azure OpenAI
-Optimizado para o3-mini reasoning model
+LangChain configuration for Azure OpenAI
 """
 import os
 import logging
@@ -9,7 +8,7 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_core.messages import BaseMessage
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 
 # Setup logging
@@ -18,33 +17,33 @@ logger = logging.getLogger(__name__)
 
 class O3MiniCompatibleChatOpenAI(AzureChatOpenAI):
     """
-    Wrapper para AzureChatOpenAI que filtra parámetros no soportados por o3-mini
+    Wrapper for AzureChatOpenAI that filters unsupported parameters for o3-mini
     """
     
     def __init__(self, **kwargs):
-        # Para o3-mini, filtrar parámetros no soportados
+        # For o3-mini, filter unsupported parameters
         deployment = kwargs.get('deployment_name', '').lower()
         if deployment in {"o3-mini", "o3", "o4-mini"}:
-            # Remover parámetros no soportados
+            # Remove unsupported parameters
             filtered_kwargs = {k: v for k, v in kwargs.items() 
                              if k not in ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty']}
-            logger.info(f"🔧 Filtrando parámetros para {deployment}: {list(kwargs.keys())} -> {list(filtered_kwargs.keys())}")
+            logger.info(f"Filtering parameters for {deployment}: {list(kwargs.keys())} -> {list(filtered_kwargs.keys())}")
             super().__init__(**filtered_kwargs)
         else:
             super().__init__(**kwargs)
     
     def invoke(self, input_data, config=None, **kwargs):
-        """Override invoke para filtrar parámetros en tiempo de ejecución"""
+        """Override invoke to filter parameters at runtime"""
         try:
-            # Filtrar kwargs que no son soportados por o3-mini
+            # Filter kwargs not supported by o3-mini
             deployment = getattr(self, 'deployment_name', '').lower()
             if deployment in {"o3-mini", "o3", "o4-mini"}:
-                # Remover parámetros no soportados del config si existe
+                # Remove unsupported parameters from config if it exists
                 if config and isinstance(config, dict):
                     config = {k: v for k, v in config.items() 
                              if k not in ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty']}
                 
-                # Remover parámetros no soportados de kwargs
+                # Remove unsupported parameters from kwargs
                 filtered_kwargs = {k: v for k, v in kwargs.items() 
                                  if k not in ['temperature', 'top_p', 'frequency_penalty', 'presence_penalty']}
                 
@@ -53,7 +52,7 @@ class O3MiniCompatibleChatOpenAI(AzureChatOpenAI):
                 return super().invoke(input_data, config=config, **kwargs)
                 
         except Exception as e:
-            logger.error(f"Error en invoke: {e}")
+            logger.error(f"Error in invoke: {e}")
             raise
 
 
@@ -70,15 +69,15 @@ def validate_config() -> bool:
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     if missing_vars:
-        logger.error(f"❌ Missing environment variables: {missing_vars}")
+        logger.error(f"Missing environment variables: {missing_vars}")
         return False
     
-    logger.info("✅ Azure OpenAI configuration validated")
+    logger.info("Azure OpenAI configuration validated")
     return True
 
 def get_azure_llm() -> AzureChatOpenAI:
     """
-    Create and configure Azure ChatOpenAI instance optimizado para o3-mini
+    Create and configure Azure ChatOpenAI instance optimized for o3-mini
     """
     try:
         deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o-mini')
@@ -86,9 +85,9 @@ def get_azure_llm() -> AzureChatOpenAI:
         api_key = os.getenv('AZURE_OPENAI_KEY')
         api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2025-01-01-preview')
         
-        logger.info(f"🧠 Configurando modelo: {deployment}")
+        logger.info(f"Configuring model: {deployment}")
         
-        # Configuración base
+        # Base configuration
         llm_params = {
             "azure_endpoint": endpoint,
             "api_key": api_key,
@@ -97,34 +96,34 @@ def get_azure_llm() -> AzureChatOpenAI:
             "verbose": False,
         }
         
-        # Para o3-mini (reasoning model) usar configuración especial
+        # For o3-mini (reasoning model) use special configuration
         if deployment and deployment.lower() in {"o3-mini", "o3", "o4-mini"}:
-            logger.info("⚡ Modo reasoning model activado - configuración mínima")
+            logger.info("Reasoning model mode activated - minimal configuration")
             max_completion_tokens = os.getenv('AZURE_OPENAI_MAX_COMPLETION_TOKENS')
             if max_completion_tokens:
                 llm_params["model_kwargs"] = {"max_completion_tokens": int(max_completion_tokens)}
-                logger.info(f"🎯 Max completion tokens: {max_completion_tokens}")
+                logger.info(f"Max completion tokens: {max_completion_tokens}")
             
-            # Usar la clase compatible con o3-mini
+            # Use the class compatible with o3-mini
             llm = O3MiniCompatibleChatOpenAI(**llm_params)
-            logger.info("🚫 Usando clase compatible con o3-mini (filtros automáticos)")
+            logger.info("Using class compatible with o3-mini (automatic filters)")
             
         else:
-            # Para modelos estándar
+            # For standard models
             max_tokens = int(os.getenv('AZURE_OPENAI_MAX_COMPLETION_TOKENS', '1500'))
             llm_params.update({
                 "max_tokens": max_tokens,
                 "temperature": 0.3,
                 "model_kwargs": {}
             })
-            logger.info(f"🎯 Max tokens: {max_tokens}")
+            logger.info(f"Max tokens: {max_tokens}")
             llm = AzureChatOpenAI(**llm_params)
         
-        logger.info(f"✅ LLM configurado exitosamente: {deployment}")
+        logger.info(f"LLM configured successfully: {deployment}")
         return llm
         
     except Exception as e:
-        logger.error(f"❌ Error configurando LLM: {e}")
+        logger.error(f"Error configuring LLM: {e}")
         raise
 
 def get_azure_embeddings():

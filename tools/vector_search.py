@@ -29,15 +29,15 @@ class VectorDocumentSearch:
         self.documents_path = Path(documents_path)
         self.vector_store_path = Path(vector_store_path)
         
-        # Usar embeddings básicos por ahora hasta configurar Azure correctamente
+        # Use basic embeddings for now until Azure is properly configured
         try:
             self.embeddings = get_azure_embeddings()
         except Exception as e:
-            logger.warning(f"⚠️ Error con Azure embeddings: {e}")
-            # Fallback a sistema de búsqueda por palabras clave
+            logger.warning(f"Error with Azure embeddings: {e}")
+            # Fallback to keyword search system
             self.embeddings = None
             self.use_keyword_search = True
-            logger.info("🔄 Usando búsqueda por palabras clave como fallback")
+            logger.info("Using keyword search as fallback")
         else:
             self.use_keyword_search = False
             
@@ -51,12 +51,12 @@ class VectorDocumentSearch:
         
     def load_documents(self) -> List[Document]:
         """
-        Cargar documentos desde archivos JSON
+        Load documents from JSON files
         """
         documents = []
         
         if not self.documents_path.exists():
-            logger.warning(f"📁 Directorio de documentos no encontrado: {self.documents_path}")
+            logger.warning(f"Documents directory not found: {self.documents_path}")
             return documents
             
         for file_path in self.documents_path.glob("*.json"):
@@ -89,61 +89,61 @@ class VectorDocumentSearch:
                     documents.append(doc)
                     
             except Exception as e:
-                logger.error(f"❌ Error cargando {file_path}: {e}")
+                logger.error(f"Error loading {file_path}: {e}")
                 
-        logger.info(f"📚 Cargados {len(documents)} documentos")
+        logger.info(f"Loaded {len(documents)} documents")
         return documents
     
     def create_vectorstore(self) -> bool:
         """
-        Crear el almacén vectorial desde los documentos
+        Create the vector store from the documents
         """
         if self.use_keyword_search:
-            logger.info("✅ Usando búsqueda por palabras clave - no se requiere vectorstore")
+            logger.info("Using keyword search - vectorstore not required")
             return True
             
         try:
             documents = self.load_documents()
             if not documents:
-                logger.error("❌ No hay documentos para procesar")
+                logger.error("No documents to process")
                 return False
                 
-            # Dividir documentos en chunks
+            # Split documents into chunks
             texts = self.text_splitter.split_documents(documents)
-            logger.info(f"📝 Documentos divididos en {len(texts)} chunks")
+            logger.info(f"Documents split into {len(texts)} chunks")
             
-            # Crear vectorstore
+            # Create vectorstore
             self.vectorstore = FAISS.from_documents(texts, self.embeddings)
             
-            # Guardar vectorstore
+            # Save vectorstore
             self.vector_store_path.mkdir(parents=True, exist_ok=True)
             self.vectorstore.save_local(str(self.vector_store_path))
             
-            logger.info("✅ Vectorstore creado y guardado exitosamente")
+            logger.info("Vectorstore created and saved successfully")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error creando vectorstore: {e}")
-            # Cambiar a búsqueda por palabras clave
+            logger.error(f"Error creating vectorstore: {e}")
+            # Switch to keyword search
             self.use_keyword_search = True
             self.embeddings = None
-            logger.info("🔄 Cambiando a búsqueda por palabras clave")
+            logger.info("Switching to keyword search")
             return True
     
     def load_vectorstore(self) -> bool:
         """
-        Cargar el almacén vectorial existente
+        Load the existing vector store
         """
         if self.use_keyword_search:
-            logger.info("✅ Usando búsqueda por palabras clave - no se requiere cargar vectorstore")
+            logger.info("Using keyword search - no vectorstore to load")
             return True
             
         try:
             if not self.vector_store_path.exists():
-                logger.warning("📁 Vectorstore no encontrado, creando nuevo...")
+                logger.warning("Vectorstore not found, creating new one...")
                 return self.create_vectorstore()
                 
-            # Intentar carga detectando si la firma soporta el parámetro
+            # Try loading detecting if the signature supports the parameter
             load_kwargs = {}
             try:
                 import inspect
@@ -151,7 +151,7 @@ class VectorDocumentSearch:
                 if 'allow_dangerous_deserialization' in params:
                     load_kwargs['allow_dangerous_deserialization'] = True
             except Exception:
-                pass  # Si falla la inspección, continuamos sin el parámetro
+                pass  # If inspection fails, continue without the parameter
 
             try:
                 self.vectorstore = FAISS.load_local(
@@ -160,19 +160,19 @@ class VectorDocumentSearch:
                     **load_kwargs
                 )
             except TypeError as te:
-                # Reintentar sin kwargs en caso de versión antigua
-                logger.warning(f"⚠️ Reintentando carga de vectorstore sin parámetros extra: {te}")
+                # Retry without kwargs in case of old version
+                logger.warning(f"Retrying vectorstore load without extra parameters: {te}")
                 self.vectorstore = FAISS.load_local(
                     str(self.vector_store_path),
                     self.embeddings
                 )
 
-            logger.info("✅ Vectorstore cargado exitosamente")
+            logger.info("Vectorstore loaded successfully")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Error cargando vectorstore: {e}")
-            logger.info("🔄 Attempting to recreate vectorstore...")
+            logger.error(f"Error loading vectorstore: {e}")
+            logger.info("Attempting to recreate vectorstore...")
             return self.create_vectorstore()
     
     def search(self, query: str, k: int = None) -> List[Dict]:
@@ -207,16 +207,16 @@ class VectorDocumentSearch:
                 }
                 results.append(result)
                 
-            logger.info(f"🔍 Encontrados {len(results)} documentos relevantes")
+            logger.info(f"Found {len(results)} relevant documents")
             return results
             
         except Exception as e:
-            logger.error(f"❌ Error en búsqueda vectorial: {e}")
+            logger.error(f"Error in vector search: {e}")
             return self._keyword_search(query, k)
     
     def _keyword_search(self, query: str, k: int = 15) -> List[Dict]:
         """
-        Búsqueda por palabras clave como fallback
+        Keyword search as fallback
         """
         try:
             documents = self.load_documents()
@@ -230,9 +230,9 @@ class VectorDocumentSearch:
                 content_words = set(doc.page_content.lower().split())
                 title_words = set(doc.metadata.get('title', '').lower().split())
                 
-                # Calcular puntuación basada en palabras coincidentes
+                # Calculate score based on matching words
                 content_matches = len(query_words.intersection(content_words))
-                title_matches = len(query_words.intersection(title_words)) * 2  # Peso mayor para título
+                title_matches = len(query_words.intersection(title_words)) * 2  # Higher weight for title
                 
                 score = content_matches + title_matches
                 
@@ -248,19 +248,19 @@ class VectorDocumentSearch:
                     }
                     scored_docs.append(result)
             
-            # Ordenar por puntuación descendente
+            # Sort by score descending
             scored_docs.sort(key=lambda x: x['score'], reverse=True)
             
-            logger.info(f"🔍 Búsqueda por palabras clave: {len(scored_docs[:k])} resultados")
+            logger.info(f"Keyword search: {len(scored_docs[:k])} results")
             return scored_docs[:k]
             
         except Exception as e:
-            logger.error(f"❌ Error en búsqueda por palabras clave: {e}")
+            logger.error(f"Error in keyword search: {e}")
             return []
     
     def get_context(self, results: List[Dict], max_length: int = 3000) -> str:
         """
-        Extraer contexto optimizado de los resultados
+        Extract optimized context from the results
         """
         if not results:
             return ""
@@ -272,20 +272,20 @@ class VectorDocumentSearch:
             content = result['content'].strip()
             title = result.get('title', '')
             
-            # Formatear el chunk con título si está disponible
+            # Format the chunk with title if available
             if title:
                 chunk = f"**{title}**\n{content}\n"
             else:
                 chunk = f"{content}\n"
                 
-            # Verificar si podemos agregar este chunk
+            # Check if we can add this chunk
             if current_length + len(chunk) <= max_length:
                 context_parts.append(chunk)
                 current_length += len(chunk)
             else:
-                # Agregar lo que podamos del chunk actual
+                # Add as much as we can from the current chunk
                 remaining = max_length - current_length
-                if remaining > 100:  # Solo si queda espacio significativo
+                if remaining > 100:  # Only if significant space is left
                     truncated = chunk[:remaining-3] + "..."
                     context_parts.append(truncated)
                 break
@@ -294,16 +294,16 @@ class VectorDocumentSearch:
     
     def rebuild_index(self) -> bool:
         """
-        Reconstruir completamente el índice vectorial
+        Completely rebuild the vector index
         """
-        logger.info("🔄 Reconstruyendo índice vectorial...")
+        logger.info("Rebuilding vector index...")
         
-        # Eliminar vectorstore existente
+        # Remove existing vectorstore
         if self.vector_store_path.exists():
             import shutil
             shutil.rmtree(self.vector_store_path)
             
         return self.create_vectorstore()
 
-# Instancia global para reutilización
+# Global instance for reuse
 document_search = VectorDocumentSearch()

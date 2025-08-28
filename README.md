@@ -1,322 +1,332 @@
-# 🏢 HAVAS Chatbot - Versión Python
+# HAVAS TV Report Assistant
 
-Asistente de IA inteligente para HAVAS, integrado con Azure OpenAI y Azure AI Search.
+AI-powered conversational assistant specialized in television reporting and media content, built with Flask and Azure OpenAI.
 
-## 🚀 Características Principales
+## Overview
 
-- **🤖 IA Conversacional**: Azure OpenAI (GPT-4.1-mini) para respuestas naturales
-- **🔍 Búsqueda Vectorial**: Azure AI Search con embeddings (text-embedding-3-small)
-- **🌍 Multiidioma**: Responde automáticamente en el idioma de la pregunta (español, francés, inglés)
-- **⚡ Búsqueda Inteligente**: Vector search con fallback a búsqueda local (FAISS)
-- **� Memoria Conversacional**: Mantiene contexto de conversaciones por sesión
-- **🖥️ Interfaz Web**: Frontend moderno con soporte Markdown y tiempo real
-- **🔒 Rate Limiting**: Protección contra abuso (30 requests/min)
-- **📊 Diagnóstico**: Sistema completo de monitoreo y health checks
+This application is a modern web-based chatbot designed specifically for HAVAS television reporting teams. It leverages Azure AI Search for intelligent document retrieval and Azure OpenAI for natural language processing, enabling users to query television reports, media content, and related documentation through an intuitive conversational interface.
 
-## 🛠️ Instalación y Configuración
+### Key Features
 
-### Prerrequisitos
-- Python 3.9+ 
-- Azure OpenAI Service
-- Azure AI Search Service
+- **Conversational AI**: Powered by Azure OpenAI (GPT-4.1-mini) for intelligent responses
+- **Document Search**: Integrated Azure AI Search with vector-based document retrieval
+- **Multi-language Support**: Responds in the same language as the query (Spanish, French, English, etc.)
+- **Session Management**: Maintains conversation context across sessions
+- **Rate Limiting**: Built-in protection with configurable request limits
+- **Modern UI**: Clean, responsive web interface with real-time chat
+- **Health Monitoring**: System health checks and diagnostics
 
-### 1. Clonar el repositorio
-```bash
-git clone [repository-url]
-cd AgenteHR-v2
-```
+## Architecture
 
-### 2. Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
+### Core Components
 
-### 3. Configurar variables de entorno
-Crear archivo `.env` con:
-```env
-# Azure OpenAI Principal (para respuestas del chat)
-AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
-AZURE_OPENAI_KEY=your-openai-key
-AZURE_OPENAI_DEPLOYMENT=your-deployment-name
+1. **Flask Web Server** (`app.py`): Main application server handling HTTP requests and API endpoints
+2. **TV Agent** (`agents/tv_agent.py`): Core AI agent responsible for processing messages and generating responses
+3. **Azure Search Client** (`tools/azure_search.py`): Document retrieval system using Azure AI Search
+4. **Memory Manager** (`memory/simple_memory.py`): Session and conversation memory management
+5. **LangChain Configuration** (`config/langchain_config.py`): Azure OpenAI integration and model configuration
 
-# Azure OpenAI para Traducciones (GPT-4.1 nano)
-AZURE_OPENAI_TRANSLATION_ENDPOINT=https://your-translation-resource.cognitiveservices.azure.com/
-AZURE_OPENAI_TRANSLATION_KEY=your-translation-api-key
-AZURE_OPENAI_TRANSLATION_DEPLOYMENT=gpt-4.1-nano
-AZURE_OPENAI_TRANSLATION_API_VERSION=2025-01-01-preview
+### Technology Stack
 
-# Azure AI Search (fuente primaria de conocimiento)
-AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
-AZURE_SEARCH_KEY=your-search-key
-AZURE_SEARCH_INDEX=your-index-name
-# (Opcional) Config semántica y modo only
-# AZURE_SEARCH_SEMANTIC_CONFIG=default
-# AZURE_SEARCH_ONLY=true
+- **Backend**: Flask 3.0, Python 3.10+
+- **AI/ML**: LangChain, Azure OpenAI API
+- **Search**: Azure AI Search with vector embeddings
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **Security**: Flask-Limiter for rate limiting, CORS support
 
-# Configuración de la aplicación
-PORT=3000
-FLASK_ENV=development
-```
-### 4. Ejecutar la aplicación
-```bash
-python app_langchain.py
-```
+## Installation
 
-## � Estructura del Proyecto
+### Prerequisites
 
-```
-AgenteHR-v2/
-├── app_langchain.py          # 🚀 Aplicación principal Flask
-├── .env                      # 🔧 Variables de entorno (configurar)
-├── .env.example             # 📋 Plantilla de configuración
-├── requirements.txt         # 📦 Dependencias Python
-├── README.md               # 📖 Documentación
-├── 
-├── agents/                 # 🤖 Agentes IA
-│   └── hr_agent.py        # Agente principal HR con LangChain
-├── 
-├── config/                 # ⚙️ Configuraciones
-│   └── langchain_config.py # Configuración LangChain, prompts y LLM
-├── 
-├── tools/                  # 🔧 Herramientas de búsqueda
-│   ├── azure_search.py    # Azure AI Search con vector search
-│   ├── vector_search.py   # Búsqueda vectorial local (FAISS)
-│   └── document_search.py # Utilidades de documentos
-├── 
-├── memory/                 # 💾 Sistema de memoria
-│   └── conversation_memory.py # Memoria conversacional por sesión
-├── 
-├── public/                 # 🌐 Frontend web
-│   ├── index.html         # Interfaz principal
-│   ├── css/styles.css     # Estilos
-│   └── js/chat.js         # JavaScript del chat
-├── 
-├── tests/                  # 🧪 Pruebas y diagnósticos
-│   ├── test_chat.py       # Test de chat completo
-│   ├── test_vector_search.py # Test búsqueda vectorial
-│   └── diagnostic.py      # Diagnóstico de servicios
-├── 
-├── alternatives/           # 🗂️ Versiones alternativas
-│   ├── app.py            # Versión legacy Flask
-│   ├── main.py           # Punto entrada alternativo
-│   └── start.py          # Script de inicio alternativo
-└── 
-└── data/                   # 📊 Datos y vectorstore local
-    └── vectorstore/       # Base de datos vectorial FAISS
-```
+- Python 3.10 or higher
+- Azure OpenAI Service subscription
+- Azure AI Search service
+- Valid Azure API keys
 
-## 🚀 Uso
+### Setup Instructions
 
-### Iniciar el Servidor
-```bash
-python app_langchain.py
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd AgenteHR-v3
+   ```
 
-La aplicación estará disponible en: `http://localhost:3000`
+2. **Create virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### Endpoints Disponibles
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- **Chat**: `POST /api/chat` - Endpoint principal de conversación
-- **Health**: `GET /api/health` - Health check del sistema
-- **Debug**: `GET /api/debug/sessions` - Información de sesiones activas
+4. **Environment configuration**
+   
+   Copy `.env.example` to `.env` and configure your Azure credentials:
+   ```env
+   # Azure OpenAI Configuration
+   AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
+   AZURE_OPENAI_KEY=your-openai-api-key
+   AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini
+   AZURE_OPENAI_API_VERSION=2025-01-01-preview
+   AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-small
+   AZURE_OPENAI_MAX_COMPLETION_TOKENS=6000
 
-# Diagnóstico
-python diagnostic.py
+   # Azure AI Search Configuration
+   AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
+   AZURE_SEARCH_KEY=your-search-api-key
+   AZURE_SEARCH_INDEX=your-index-name
+   AZURE_SEARCH_VECTOR=true
+   AZURE_SEARCH_ONLY=true
+   AZURE_SEARCH_VECTOR_FIELD=content_embedding
+   AZURE_SEARCH_VECTOR_K=25
 
-# Script de inicio
-python start.py
-```
+   # Application Configuration
+   PORT=3000
+   ```
 
-### Opción 3: Usando el batch file (Windows)
-```cmd
-# Simplifica el comando en Windows
-python.bat main.py help
-python.bat app.py
-```
+5. **Run the application**
+   ```bash
+   python app.py
+   ```
 
-## 🌐 Endpoints API
+   The application will be available at `http://localhost:3000`
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/` | GET | Página principal del chatbot |
-| `/api/chat` | POST | Enviar mensaje al chatbot (con traducción automática) |
-| `/api/health` | GET | Estado de salud del sistema |
-| `/api/debug/index` | GET | Información del índice de búsqueda |
-| `/api/debug/translate` | POST | Test de traducción manual |
+## API Reference
 
-### 🌐 Sistema de Traducción Automática
+### Endpoints
 
-El chatbot ahora incluye **traducción automática inteligente**:
+#### `GET /`
+Serves the main chat interface.
 
-1. **Detección automática** del idioma del mensaje
-2. **Traducción a francés** para el procesamiento interno
-3. **Búsqueda en francés** en la base de conocimientos
-4. **Respuesta en francés** generada por la IA
-5. **Traducción de vuelta** al idioma original del usuario
+#### `POST /api/chat`
+Main chat endpoint for processing user messages.
 
-#### Idiomas Soportados
-- 🇪🇸 Español
-- 🇬🇧 Inglés  
-- 🇫🇷 Francés (idioma base)
-- 🇩🇪 Alemán
-- 🇮🇹 Italiano
-- 🇵🇹 Portugués
-- Y muchos más...
-
-### Ejemplo de uso de API
-```bash
-# Mensaje en español
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "¿Qué servicios ofrece HAVAS?"}'
-
-# Test de traducción manual
-curl -X POST http://localhost:3000/api/debug/translate \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello, how are you?", "target": "es"}'
-```
-
-#### Respuesta con información de traducción
+**Request Body:**
 ```json
 {
-  "response": "HAVAS ofrece servicios de...",
-  "documentsFound": 5,
-  "hasContext": true,
-  "timestamp": "2025-08-26T14:30:00.000Z",
-  "language": {
-    "detected": "es",
-    "original_message": "¿Qué servicios ofrece HAVAS?",
-    "french_message": "Quels services HAVAS offre-t-il ?",
-    "french_response": "HAVAS offre des services de...",
-    "translated_back": true
-  }
+  "message": "What reports are available about sports coverage?",
+  "sessionId": "user-session-123"
 }
 ```
 
-## 🔧 Diagnóstico
+**Response:**
+```json
+{
+  "response": "Based on the available reports...",
+  "documentsFound": 5,
+  "hasContext": true,
+  "session_info": {
+    "session_id": "user-session-123",
+    "message_count": 3,
+    "last_activity": "2025-08-28T14:30:00",
+    "created": "2025-08-28T14:25:00"
+  },
+  "processing_time": 1.23,
+  "timestamp": "2025-08-28T14:30:00"
+}
+```
 
-El sistema incluye un diagnóstico completo que verifica:
+**Rate Limit:** 30 requests per minute per IP
 
-1. ✅ Variables de entorno
-2. 🔍 Conectividad con Azure AI Search
-3. 📄 Estructura del índice de búsqueda
-4. 🤖 Conexión con Azure OpenAI
-5. 🎯 Test de integración completa
+#### `POST /api/new-conversation`
+Starts a new conversation session.
+
+**Request Body:**
+```json
+{
+  "sessionId": "user-session-123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "New conversation started",
+  "sessionId": "user-session-123",
+  "timestamp": "2025-08-28T14:30:00"
+}
+```
+
+**Rate Limit:** 10 requests per minute per IP
+
+#### `GET /api/health`
+System health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-08-28T14:30:00",
+  "version": "2.0"
+}
+```
+
+#### `GET /api/debug/sessions`
+Debug endpoint for viewing active sessions (development only).
+
+**Response:**
+```json
+{
+  "active_sessions": {
+    "default": {
+      "session_id": "default",
+      "message_count": 5,
+      "last_activity": "2025-08-28T14:30:00",
+      "created": "2025-08-28T14:25:00"
+    }
+  },
+  "timestamp": "2025-08-28T14:30:00"
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI service endpoint | Yes | - |
+| `AZURE_OPENAI_KEY` | Azure OpenAI API key | Yes | - |
+| `AZURE_OPENAI_DEPLOYMENT` | Model deployment name | Yes | gpt-4o-mini |
+| `AZURE_OPENAI_API_VERSION` | API version | No | 2025-01-01-preview |
+| `AZURE_OPENAI_MAX_COMPLETION_TOKENS` | Maximum tokens per response | No | 6000 |
+| `AZURE_SEARCH_ENDPOINT` | Azure AI Search endpoint | Yes | - |
+| `AZURE_SEARCH_KEY` | Azure AI Search API key | Yes | - |
+| `AZURE_SEARCH_INDEX` | Search index name | Yes | - |
+| `AZURE_SEARCH_VECTOR` | Enable vector search | No | true |
+| `AZURE_SEARCH_ONLY` | Use only Azure Search (no fallback) | No | true |
+| `AZURE_SEARCH_VECTOR_FIELD` | Vector field name | No | content_embedding |
+| `AZURE_SEARCH_VECTOR_K` | Number of search results | No | 25 |
+| `PORT` | Server port | No | 3000 |
+| `FLASK_DEBUG` | Debug mode | No | false |
+
+### Model Support
+
+The application is optimized for Azure OpenAI's reasoning models, particularly:
+- **GPT-4.1-mini**: Primary model for TV reporting queries
+- **GPT-4o-mini**: Alternative model option
+- **o3-mini**: Experimental reasoning model support
+
+Special handling is implemented for reasoning models that don't support standard parameters like temperature or top_p.
+
+## Usage Examples
+
+### Basic Query
+```javascript
+fetch('/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: "What are the latest sports reports?",
+    sessionId: "user-123"
+  })
+})
+```
+
+### Starting New Conversation
+```javascript
+fetch('/api/new-conversation', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    sessionId: "user-123"
+  })
+})
+```
+
+## Development
+
+### Project Structure
+
+```
+AgenteHR-v3/
+├── app.py                    # Main Flask application
+├── requirements.txt          # Python dependencies
+├── .env.example             # Environment configuration template
+├── agents/
+│   └── tv_agent.py          # Main AI agent
+├── config/
+│   └── langchain_config.py  # Azure OpenAI configuration
+├── memory/
+│   └── simple_memory.py     # Session memory management
+├── tools/
+│   └── azure_search.py      # Document search integration
+├── public/                  # Frontend assets
+│   ├── index.html          # Main chat interface
+│   ├── css/styles.css      # Styling
+│   └── js/chat.js          # Frontend JavaScript
+└── tests/
+    └── diagnostic.py       # System diagnostics
+```
+
+### Running in Development Mode
 
 ```bash
-python main.py diagnostic
+export FLASK_DEBUG=true
+python app.py
 ```
 
-## 📁 Estructura del Proyecto (Final)
+### Testing
 
-```
-├── app.py                    # 🐍 Servidor Flask principal con traducción automática
-├── diagnostic.py             # 🔍 Script de diagnóstico completo  
-├── main.py                  # 🎛️ CLI unificado y punto de entrada
-├── start.py                 # 🚀 Script de inicio alternativo
-├── requirements.txt         # 📋 Dependencias Python
-├── .env                     # 🔐 Variables de entorno (configuración)
-├── .env.example             # 📝 Ejemplo de configuración
-├── python.bat              # 🛠️ Helper para Windows (opcional)
-├── public/                 # 🌐 Frontend (sin cambios de la versión Node.js)
-│   ├── index.html          #   📄 Página principal del chat
-│   ├── css/styles.css      #   🎨 Estilos CSS
-│   └── js/chat.js          #   ⚙️ Lógica del chat (JavaScript)
-├── backup/                 # 📦 Versión original Node.js (respaldo)
-│   ├── app.js              #   🟨 Servidor Express original  
-│   ├── diagnostic.js       #   🔍 Diagnóstico JavaScript original
-│   ├── package.json        #   📋 Dependencias Node.js
-│   ├── node_modules/       #   📚 Módulos de Node.js
-│   └── README-BACKUP.md    #   📖 Documentación del backup
-├── MIGRATION_SUMMARY.md    # 📋 Resumen detallado de la migración
-└── README.md               # 📖 Esta documentación
-```
+Run the diagnostic script to verify system configuration:
 
-## 🔄 Migración desde Node.js
-
-Este proyecto fue migrado completamente desde Node.js/Express a Python/Flask. Detalles completos en [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md).
-
-### Equivalencias
-- `app.js` → `app.py` (Flask server)
-- `diagnostic.js` → `diagnostic.py` 
-- `package.json` → `requirements.txt`
-- Express → Flask
-- axios → requests
-- express-rate-limit → flask-limiter
-
-## 🐞 Resolución de Problemas
-
-### Error: Module 'flask' not found
 ```bash
-pip install -r requirements.txt
+python tests/diagnostic.py
 ```
 
-### Error: Python command not found
-Usar el comando específico de tu instalación Python o el archivo `python.bat` incluido.
+## Troubleshooting
 
-### Error: Azure API version
-Asegúrate de usar la versión correcta de API en las llamadas a Azure OpenAI (2024-12-01-preview).
+### Common Issues
 
-### Puertos en uso
-Por defecto usa puerto 3000. Cambiar con variable de entorno `PORT=5000`.
+1. **Module Import Errors**
+   - Ensure all dependencies are installed: `pip install -r requirements.txt`
+   - Verify Python version compatibility (3.10+)
 
-## 📊 Logging
+2. **Azure API Connection Issues**
+   - Verify API keys and endpoints in `.env` file
+   - Check Azure service quotas and availability
+   - Run diagnostic script: `python tests/diagnostic.py`
 
-El sistema incluye logging detallado:
-- 📩 Mensajes recibidos
-- 🔍 Resultados de búsqueda  
-- 🤖 Respuestas de IA
-- ❌ Errores y diagnósticos
+3. **Search Results Issues**
+   - Ensure Azure AI Search index is properly configured
+   - Verify vector embeddings are available if using vector search
+   - Check index permissions and API keys
 
-## 🔒 Seguridad
+4. **Performance Issues**
+   - Adjust `AZURE_OPENAI_MAX_COMPLETION_TOKENS` if responses are slow
+   - Consider reducing `AZURE_SEARCH_VECTOR_K` for faster searches
+   - Monitor rate limits and adjust client request patterns
 
-- Rate limiting: 30 requests/minuto por IP
-- CORS configurado
-- Validación de entrada
-- Variables de entorno para credenciales
-- Error handling robusto
+### Logging
 
-## 🌟 Características de la Versión Python
+The application uses Python's built-in logging with INFO level by default. Key log categories:
 
-### Mejoras sobre Node.js
-- ✅ CLI más intuitivo
-- ✅ Mejor manejo de errores
-- ✅ Logging más detallado
-- ✅ Código más modular
-- ✅ Diagnóstico más completo
+- **Application**: General server operations
+- **Agent**: Message processing and AI interactions
+- **Search**: Document retrieval operations
+- **Memory**: Session management
+- **Config**: Configuration and initialization
 
-### Mantenido Compatible
-- ✅ Mismo frontend JavaScript
-- ✅ Mismas rutas API
-- ✅ Mismo formato de respuestas
-- ✅ Misma configuración
+## Security Considerations
 
-## 📝 Licencia
+- API keys stored in environment variables only
+- Rate limiting implemented on all endpoints
+- CORS configured for frontend integration
+- Input validation on all user inputs
+- Session isolation for multi-user support
 
-Proyecto interno de HAVAS.
+## License
 
-## 🤝 Soporte
+Internal HAVAS project. All rights reserved.
 
-Para problemas o preguntas, ejecutar diagnóstico y revisar logs:
-```bash
-python main.py diagnostic
-```
+## Support
 
----
-
-**🎉 Estado: ✅ MIGRACIÓN COMPLETA Y FUNCIONAL**  
-**🌐 Nueva funcionalidad: Sistema de traducción automática con GPT-4.1 nano**  
-**🔍 Nueva: Integración Azure AI Search como recuperador primario (variable AZURE_SEARCH_ONLY)**
-**🐍 Versión: Python 3.10+ / Flask 3.0**  
-**📅 Finalizado: Agosto 2025**
-
-### 🏆 Logros de esta migración:
-- ✅ Migración completa de Node.js/Express a Python/Flask
-- ✅ Sistema de traducción automática multiidioma implementado
-- ✅ Detección automática de idioma con GPT-4.1 nano
-- ✅ Procesamiento interno en francés, respuesta en idioma original
-- ✅ Frontend JavaScript preservado sin cambios
-- ✅ Todas las funcionalidades originales mantenidas
-- ✅ Documentación completa y actualizada
-- ✅ Scripts de diagnóstico y prueba incluidos
-- ✅ Backup completo de la versión original Node.js
+For technical support or configuration issues:
+1. Run the diagnostic script: `python tests/diagnostic.py`
+2. Check application logs for error details
+3. Verify Azure service status and quotas
+4. Review environment configuration against `.env.example`

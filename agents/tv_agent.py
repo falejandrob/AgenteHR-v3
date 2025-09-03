@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 # Optimized imports
 from tools.azure_search import AzureSearchClient
+from tools.file_processor import FileProcessor
 from memory.simple_memory import SimpleMemoryManager
 
 # Setup logging
@@ -20,6 +21,9 @@ class TVAgent:
         
         # Initialize document search
         self.document_search = AzureSearchClient()
+        
+        # Initialize file processor
+        self.file_processor = FileProcessor()
         
         # Initialize simple memory
         self.memory_manager = SimpleMemoryManager()
@@ -38,7 +42,10 @@ class TVAgent:
             If you are unsure about something, ask for clarification.
             If you encounter a problem, describe it clearly.
             Use the provided information to give accurate and helpful answers.
-            If you don't have enough information, say so clearly."""
+            If you don't have enough information, say so clearly.
+            
+            IMPORTANT: When the user has uploaded files, prioritize the content from those files over the Azure AI Search results.
+            The uploaded files should be considered the primary source of information for answering questions."""
 
         logger.info(" HRAgent initialized successfully")
     
@@ -62,12 +69,36 @@ class TVAgent:
         try:
             logger.info(f"Processing message: {message[:50]}...")
             
-            # 1. Search for relevant documents
-            search_results = self.document_search.search(message)
-            logger.info(f"Found {len(search_results)} relevant documents")
+            # 1. Check for uploaded files first
+            uploaded_files = self.file_processor.get_session_files(session_id)
+            file_content = ""
             
-            # 2. Prepare context
-            context = self._prepare_context(search_results)
+            if uploaded_files:
+                logger.info(f"Found {len(uploaded_files)} uploaded files for session {session_id}")
+                
+                # Process all uploaded files
+                for file_info in uploaded_files:
+                    try:
+                        content = self.file_processor.process_file(file_info)
+                        file_content += f"\n--- Content from {file_info['original_name']} ---\n"
+                        file_content += content + "\n"
+                    except Exception as e:
+                        logger.error(f"Error processing file {file_info['original_name']}: {e}")
+                        continue
+            
+            # 2. If no files uploaded, use Azure Search
+            context = ""
+            search_results = []
+            
+            if file_content:
+                # Use file content as primary context
+                context = file_content
+                logger.info("Using uploaded file content as primary context")
+            else:
+                # Fallback to Azure Search
+                search_results = self.document_search.search(message)
+                logger.info(f"Found {len(search_results)} relevant documents from Azure Search")
+                context = self._prepare_context(search_results)
             
             # 3. Get conversation history
             conversation_history = self.memory_manager.get_conversation_history(session_id)
@@ -83,7 +114,10 @@ class TVAgent:
             
             # Add context and current question
             if context:
-                context_msg = f"Relevant information:\n{context}\n\nUser's question: {message}"
+                if file_content:
+                    context_msg = f"Information from uploaded files:\n{context}\n\nUser's question: {message}"
+                else:
+                    context_msg = f"Relevant information from knowledge base:\n{context}\n\nUser's question: {message}"
             else:
                 context_msg = f"User's question: {message}"
             
@@ -101,7 +135,9 @@ class TVAgent:
             result = {
                 'response': response,
                 'documentsFound': len(search_results),
+                'filesUsed': len(uploaded_files),
                 'hasContext': bool(context),
+                'contextSource': 'uploaded_files' if file_content else 'azure_search',
                 'session_info': self.memory_manager.get_session_info(session_id),
                 'processing_time': round(processing_time, 2),
                 'timestamp': datetime.now().isoformat()
@@ -192,9 +228,46 @@ class TVAgent:
             return "I'm sorry, I encountered a technical problem. Please try again later."
     
     def start_new_conversation(self, session_id: str = "default"):
-        """Start new conversation"""
+        """Start new conversation and clear files"""
         self.memory_manager.clear_session(session_id)
-        logger.info(f"New conversation started for session: {session_id}")
+        self.file_processor.clear_session_files(session_id)
+        logger.info(f"New conversation started for session: {session_id} (files cleared)")
+    
+    def upload_file(self, file, session_id: str = "default") -> Dict:
+        """Handle file upload"""
+        try:
+            file_info = self.file_processor.save_file(file, session_id)
+            if file_info:
+                logger.info(f"File uploaded successfully: {file_info['original_name']}")
+                return {
+                    'success': True,
+                    'file_info': file_info,
+                    'message': f"File '{file_info['original_name']}' uploaded successfully"
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'No file provided'
+                }
+        except Exception as e:
+            logger.error(f"Error uploading file: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def get_uploaded_files(self, session_id: str = "default") -> List[Dict]:
+        """Get list of uploaded files for session"""
+        return self.file_processor.get_session_files(session_id)
+    
+    def get_session_files(self, session_id: str = "default") -> List[Dict]:
+        """Get list of uploaded files for session (alias for compatibility)"""
+        return self.get_uploaded_files(session_id)
+    
+    def clear_session_files(self, session_id: str = "default"):
+        """Clear all files for a session"""
+        self.file_processor.clear_session_files(session_id)
+        logger.info(f"Files cleared for session: {session_id}")
     
     def get_conversation_stats(self, session_id: str = "default") -> Dict:
         """Get conversation statistics"""

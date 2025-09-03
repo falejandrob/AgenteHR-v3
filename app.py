@@ -1,11 +1,14 @@
 import os
 import logging
+import threading
+import time
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 
 # Local imports
 from config.langchain_config import validate_config
@@ -24,6 +27,12 @@ logger = logging.getLogger(__name__)
 # Configure Flask
 app = Flask(__name__, static_folder='public', static_url_path='')
 CORS(app)
+
+# File upload configuration
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'xlsx'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Rate limiting
 limiter = Limiter(
@@ -95,6 +104,196 @@ def chat():
             'timestamp': datetime.now().isoformat()
         }), 500
 
+@app.route('/api/upload', methods=['POST'])
+@limiter.limit("5 per minute")
+def upload_file():
+    """File upload endpoint - supports multiple files"""
+    try:
+        # Check for multiple files first, then single file for backward compatibility
+        files = []
+        if 'files' in request.files:
+            files = request.files.getlist('files')
+        elif 'file' in request.files:
+            files = [request.files['file']]
+        
+        if not files or len(files) == 0:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        # Get session ID
+        session_id = request.form.get('sessionId', 'default')
+        
+        uploaded_files = []
+        errors = []
+        
+        for file in files:
+            try:
+                # Upload file using agent
+                result = hr_agent_simple.upload_file(file, session_id)
+                
+                if result['success']:
+                    uploaded_files.append({
+                        'name': result['file_info']['original_name'],
+                        'type': result['file_info']['file_type'],
+                        'size': result['file_info']['file_size']
+                    })
+                    logger.info(f"File uploaded successfully: {result['file_info']['original_name']}")
+                else:
+                    errors.append(f"{file.filename}: {result['error']}")
+                    
+            except Exception as e:
+                logger.error(f"Error uploading file {file.filename}: {e}")
+                errors.append(f"{file.filename}: {str(e)}")
+        
+        if len(uploaded_files) > 0:
+            message = f"Successfully uploaded {len(uploaded_files)} file(s)"
+            if len(errors) > 0:
+                message += f". {len(errors)} file(s) failed."
+            
+            return jsonify({
+                'success': True,
+                'message': message,
+                'uploaded_files': uploaded_files,
+                'errors': errors,
+                'total_uploaded': len(uploaded_files),
+                'total_errors': len(errors),
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'error': 'No files could be uploaded',
+                'errors': errors,
+                'timestamp': datetime.now().isoformat()
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error in upload endpoint: {e}")
+        return jsonify({
+            'error': 'Error uploading files',
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+@app.route('/api/files/<session_id>', methods=['GET', 'DELETE'])
+@limiter.limit("10 per minute")
+def handle_session_files(session_id):
+    """Handle GET and DELETE for session files"""
+    try:
+        if request.method == 'GET':
+            # Get list of uploaded files for this session
+            files = hr_agent_simple.get_uploaded_files(session_id)
+            
+            file_list = []
+            for file_info in files:
+                file_list.append({
+                    'name': file_info['original_name'],
+                    'type': file_info['file_type'],
+                    'size': file_info['file_size']
+                })
+            
+            return jsonify({
+                'success': True,
+                'files': file_list,
+                'count': len(file_list),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        elif request.method == 'DELETE':
+            # Clear all files for a session
+            hr_agent_simple.clear_session_files(session_id)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Files cleared for session {session_id}',
+                'timestamp': datetime.now().isoformat()
+            })
+        
+    except Exception as e:
+        logger.error(f"Error handling session files: {e}")
+        return jsonify({'error': 'Error handling session files'}), 500
+
+@app.route('/api/files/<session_id>/<filename>', methods=['DELETE'])
+@limiter.limit("10 per minute")
+def delete_individual_file(session_id, filename):
+    """Delete individual file from session"""
+    try:
+        from urllib.parse import unquote
+        filename = unquote(filename)
+        
+        # Get all session files
+        session_files = hr_agent_simple.get_uploaded_files(session_id)
+        
+        # Find and remove the specific file
+        file_found = False
+        for file_info in session_files:
+            if file_info['original_name'] == filename:
+                file_path = file_info['file_path']
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    file_found = True
+                    logger.info(f"Individual file removed: {filename} for session {session_id}")
+                    break
+        
+        if file_found:
+            return jsonify({
+                'success': True,
+                'message': f'File "{filename}" removed successfully',
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'error': f'File "{filename}" not found',
+                'timestamp': datetime.now().isoformat()
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error deleting individual file: {e}")
+        return jsonify({'error': 'Error deleting file'}), 500
+
+@app.route('/api/cleanup', methods=['POST'])
+@limiter.limit("5 per minute")
+def cleanup_old_files():
+    """Cleanup old files (older than 1 hour)"""
+    try:
+        from tools.file_processor import FileProcessor
+        file_processor = FileProcessor()
+        
+        deleted_count = file_processor.cleanup_old_files(max_age_hours=1)
+        
+        return jsonify({
+            'success': True,
+            'deleted_files': deleted_count,
+            'message': f'Cleaned up {deleted_count} old files',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in cleanup: {e}")
+        return jsonify({'error': 'Error during cleanup'}), 500
+
+@app.route('/api/cleanup-session', methods=['POST'])
+@limiter.limit("20 per minute")
+def cleanup_session_files():
+    """Cleanup files for a specific session (called on page refresh/unload)"""
+    try:
+        session_id = request.form.get('sessionId')
+        
+        if not session_id:
+            return jsonify({'error': 'Session ID required'}), 400
+        
+        # Clear session files
+        hr_agent_simple.clear_session_files(session_id)
+        
+        logger.info(f"Session files cleaned up for session: {session_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Files cleared for session {session_id}',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in session cleanup: {e}")
+        return jsonify({'error': 'Error during session cleanup'}), 500
+
 @app.route('/api/new-conversation', methods=['POST'])
 @limiter.limit("10 per minute")
 def new_conversation():
@@ -157,6 +356,31 @@ def internal_error_handler(e):
         'timestamp': datetime.now().isoformat()
     }), 500
 
+def start_cleanup_thread():
+    """Start background thread for periodic file cleanup"""
+    def cleanup_worker():
+        from tools.file_processor import FileProcessor
+        file_processor = FileProcessor()
+        
+        while True:
+            try:
+                # Sleep for 30 minutes
+                time.sleep(1800)  
+                
+                # Cleanup files older than 2 hours
+                deleted_count = file_processor.cleanup_old_files(max_age_hours=2)
+                if deleted_count > 0:
+                    logger.info(f"Periodic cleanup: removed {deleted_count} old files")
+                    
+            except Exception as e:
+                logger.error(f"Error in cleanup thread: {e}")
+                # Continue running even if there's an error
+                time.sleep(60)  # Wait 1 minute before retrying
+    
+    cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+    cleanup_thread.start()
+    logger.info("Periodic file cleanup thread started")
+
 def initialize_app():
     """Initialize application"""
     try:
@@ -166,6 +390,10 @@ def initialize_app():
         
         logger.info("Configuration validated successfully")
         logger.info("HR  Agent initialized")
+        
+        # Start periodic cleanup thread
+        start_cleanup_thread()
+        
         return True
         
     except Exception as e:

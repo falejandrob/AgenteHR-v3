@@ -80,7 +80,7 @@ def get_azure_llm() -> AzureChatOpenAI:
     Create and configure Azure ChatOpenAI instance optimized for o3-mini
     """
     try:
-        deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o-mini')
+        deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT')
         endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
         api_key = os.getenv('AZURE_OPENAI_KEY')
         api_version = os.getenv('AZURE_OPENAI_API_VERSION', '2025-01-01-preview')
@@ -96,28 +96,14 @@ def get_azure_llm() -> AzureChatOpenAI:
             "verbose": False,
         }
         
-        # For o3-mini (reasoning model) use special configuration
-        if deployment and deployment.lower() in {"o3-mini", "o3", "o4-mini"}:
-            logger.info("Reasoning model mode activated - minimal configuration")
-            max_completion_tokens = os.getenv('AZURE_OPENAI_MAX_COMPLETION_TOKENS')
-            if max_completion_tokens:
-                llm_params["model_kwargs"] = {"max_completion_tokens": int(max_completion_tokens)}
-                logger.info(f"Max completion tokens: {max_completion_tokens}")
-            
-            # Use the class compatible with o3-mini
-            llm = O3MiniCompatibleChatOpenAI(**llm_params)
-            logger.info("Using class compatible with o3-mini (automatic filters)")
-            
-        else:
-            # For standard models
-            max_tokens = int(os.getenv('AZURE_OPENAI_MAX_COMPLETION_TOKENS', '1500'))
-            llm_params.update({
-                "max_tokens": max_tokens,
-                "temperature": 0.3,
-                "model_kwargs": {}
-            })
-            logger.info(f"Max tokens: {max_tokens}")
-            llm = AzureChatOpenAI(**llm_params)
+        # For standard models
+        max_tokens = int(os.getenv('AZURE_OPENAI_MAX_COMPLETION_TOKENS', '1500'))
+        llm_params.update({
+            "max_completion_tokens": max_tokens,
+            "model_kwargs": {}
+        })
+        logger.info(f"Max tokens: {max_tokens}")
+        llm = AzureChatOpenAI(**llm_params)
         
         logger.info(f"LLM configured successfully: {deployment}")
         return llm
